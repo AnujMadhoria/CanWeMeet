@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can We Meet</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+</head>
+<body>
+    <div id="main-heading">Can We Meet</div>
+    <div id="container">
+        <button id="toggle-map-btn" aria-label="Show/Hide Map">Hide Map</button>
+        <div id="map"></div>
+        <div id="chat-area">
+            <h2>Live Chat Room</h2>
+            <div id="chat-box"></div>
+            <form id="chat-form" autocomplete="off">
+                <input id="chat-input" autocomplete="off" placeholder="Type a message..." />
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/script.js"></script>
+</body>
+</html>
