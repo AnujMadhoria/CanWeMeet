@@ -1,6 +1,20 @@
 const socket = io()
 
-
+if(navigator.geolocation){
+    navigator.geolocation.watchPosition((position)=>{
+        const { latitude, longitude }= position.coords;
+        socket.emit("send-location",{ latitude, longitude });
+    },
+    (error)=>{
+        console.error(error)
+    },
+    {
+        enableHighAccuracy:true,
+        timeout:1000,
+        maximumAge:0,
+    }
+  );
+}
 
 const map = L.map("map").setView([0,0],16);
 
@@ -91,8 +105,9 @@ socket.on('chat-message', function(data){
         ${replyHtml}
         <span class="chat-username" style="color:${data.color};background:${data.color}22">${data.color}</span>
         <span>${data.message}</span>
-        <button class="reply-btn" title="Reply">....↩️</button>
-        
+        <button class="reply-btn" title="Reply">↩️</button>
+        <span class="reactions"></span>
+        <button class="react-btn" title="React">😊</button>
     `;
     chatBox.appendChild(msgDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -154,71 +169,5 @@ document.getElementById('chat-form').addEventListener('click', function(e){
     if (e.target.id === 'cancel-reply') {
         replyTo = null;
         document.getElementById('reply-preview').remove();
-    }
-});
-
-let sharingLocation = true;
-let shareTimeout = null;
-
-// Send location immediately
-function sendCurrentLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            socket.emit("send-location", {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-            });
-        });
-    }
-}
-
-// Always-running interval, only sends if sharingLocation is true
-setInterval(function() {
-    if (sharingLocation) {
-        sendCurrentLocation();
-    }
-}, 5000); // every 5 seconds
-
-// Toggle button logic
-document.getElementById('toggle-location-btn').addEventListener('click', function() {
-    if (sharingLocation) {
-        // Stop sharing
-        sharingLocation = false;
-        this.textContent = "Start Sharing Location";
-        if (shareTimeout) {
-            clearTimeout(shareTimeout);
-            shareTimeout = null;
-        }
-        socket.emit('stop-location');
-    } else {
-        // Start sharing
-        sharingLocation = true;
-        this.textContent = "Stop Sharing Location";
-        sendCurrentLocation(); // Send immediately
-        // Handle timer if set
-        const duration = parseInt(document.getElementById('share-duration').value, 10);
-        if (duration > 0) {
-           if (shareTimeout) clearTimeout(shareTimeout);
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
-    }
-});
-
-// Duration dropdown logic
-document.getElementById('share-duration').addEventListener('change', function() {
-    if (sharingLocation) {
-        if (shareTimeout) clearTimeout(shareTimeout);
-        const duration = parseInt(this.value, 10);
-        if (duration > 0) {
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
     }
 });

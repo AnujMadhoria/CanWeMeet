@@ -17,7 +17,7 @@ const colors = [
 ];
 const userColors = {};
 const userLocations = {};
-const messages = {}; // Store messages by msgId
+const messageReactions = {}; // { msgId: { emoji: [userId, ...] } }
 
 function getRandomColor() {
     // Pick a color not in use, or random if all are used
@@ -41,21 +41,20 @@ io.on("connection", function(socket){
     });
 
     socket.on("chat-message", function(data){
+        // Generate a unique message ID (e.g., timestamp + socket.id)
         const msgId = Date.now() + "_" + socket.id;
-        let replyText = null, replyColor = null;
-        if (data.replyTo && messages[data.replyTo]) {
-            replyText = messages[data.replyTo].message;
-            replyColor = messages[data.replyTo].color;
+        messageReactions[msgId] = {};
+        io.emit("chat-message", { ...data, msgId });
+    });
+
+    socket.on("add-reaction", function({ msgId, emoji }) {
+        if (!messageReactions[msgId]) messageReactions[msgId] = {};
+        if (!messageReactions[msgId][emoji]) messageReactions[msgId][emoji] = [];
+        // Prevent duplicate reactions from same user
+        if (!messageReactions[msgId][emoji].includes(socket.id)) {
+            messageReactions[msgId][emoji].push(socket.id);
         }
-        const msgObj = {
-            ...data,
-            msgId,
-            color: userColors[socket.id],
-            replyText,
-            replyColor
-        };
-        messages[msgId] = msgObj;
-        io.emit("chat-message", msgObj);
+        io.emit("update-reactions", { msgId, reactions: messageReactions[msgId] });
     });
 
     socket.on("disconnect", function(){
@@ -63,10 +62,6 @@ io.on("connection", function(socket){
         delete userColors[socket.id];
         io.emit("a-user-disconnected", socket.id);
         console.log("disconnected");
-    });
-    socket.on('stop-location', function() {
-        delete userLocations[socket.id];
-        io.emit("a-user-disconnected", socket.id);
     });
 })
 

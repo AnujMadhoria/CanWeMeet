@@ -17,7 +17,6 @@ const colors = [
 ];
 const userColors = {};
 const userLocations = {};
-const messages = {}; // Store messages by msgId
 
 function getRandomColor() {
     // Pick a color not in use, or random if all are used
@@ -41,21 +40,7 @@ io.on("connection", function(socket){
     });
 
     socket.on("chat-message", function(data){
-        const msgId = Date.now() + "_" + socket.id;
-        let replyText = null, replyColor = null;
-        if (data.replyTo && messages[data.replyTo]) {
-            replyText = messages[data.replyTo].message;
-            replyColor = messages[data.replyTo].color;
-        }
-        const msgObj = {
-            ...data,
-            msgId,
-            color: userColors[socket.id],
-            replyText,
-            replyColor
-        };
-        messages[msgId] = msgObj;
-        io.emit("chat-message", msgObj);
+        io.emit("chat-message", { color, message: data.message });
     });
 
     socket.on("disconnect", function(){
@@ -63,10 +48,6 @@ io.on("connection", function(socket){
         delete userColors[socket.id];
         io.emit("a-user-disconnected", socket.id);
         console.log("disconnected");
-    });
-    socket.on('stop-location', function() {
-        delete userLocations[socket.id];
-        io.emit("a-user-disconnected", socket.id);
     });
 })
 

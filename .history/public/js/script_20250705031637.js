@@ -1,6 +1,20 @@
 const socket = io()
 
-
+if(navigator.geolocation){
+    navigator.geolocation.watchPosition((position)=>{
+        const { latitude, longitude }= position.coords;
+        socket.emit("send-location",{ latitude, longitude });
+    },
+    (error)=>{
+        console.error(error)
+    },
+    {
+        enableHighAccuracy:true,
+        timeout:1000,
+        maximumAge:0,
+    }
+  );
+}
 
 const map = L.map("map").setView([0,0],16);
 
@@ -160,7 +174,42 @@ document.getElementById('chat-form').addEventListener('click', function(e){
 let sharingLocation = true;
 let shareTimeout = null;
 
-// Send location immediately
+document.getElementById('toggle-location-btn').addEventListener('click', function() {
+    sharingLocation = !sharingLocation;
+    this.textContent = sharingLocation ? "Stop Sharing Location" : "Start Sharing Location";
+    if (!sharingLocation) {
+        if (shareTimeout) clearTimeout(shareTimeout);
+        socket.emit('stop-location');
+    } else {
+        // Send location immediately when starting again
+        sendCurrentLocation();
+        // If a duration is set, restart the timer
+        const duration = parseInt(document.getElementById('share-duration').value, 10);
+        if (duration > 0) {
+            if (shareTimeout) clearTimeout(shareTimeout);
+            shareTimeout = setTimeout(() => {
+                sharingLocation = false;
+                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
+                socket.emit('stop-location');
+            }, duration * 1000);
+        }
+    }
+});
+
+document.getElementById('share-duration').addEventListener('change', function() {
+    if (sharingLocation) {
+        if (shareTimeout) clearTimeout(shareTimeout);
+        const duration = parseInt(this.value, 10);
+        if (duration > 0) {
+            shareTimeout = setTimeout(() => {
+                sharingLocation = false;
+                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
+                socket.emit('stop-location');
+            }, duration * 1000);
+        }
+    }
+});
+
 function sendCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -178,47 +227,3 @@ setInterval(function() {
         sendCurrentLocation();
     }
 }, 5000); // every 5 seconds
-
-// Toggle button logic
-document.getElementById('toggle-location-btn').addEventListener('click', function() {
-    if (sharingLocation) {
-        // Stop sharing
-        sharingLocation = false;
-        this.textContent = "Start Sharing Location";
-        if (shareTimeout) {
-            clearTimeout(shareTimeout);
-            shareTimeout = null;
-        }
-        socket.emit('stop-location');
-    } else {
-        // Start sharing
-        sharingLocation = true;
-        this.textContent = "Stop Sharing Location";
-        sendCurrentLocation(); // Send immediately
-        // Handle timer if set
-        const duration = parseInt(document.getElementById('share-duration').value, 10);
-        if (duration > 0) {
-           if (shareTimeout) clearTimeout(shareTimeout);
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
-    }
-});
-
-// Duration dropdown logic
-document.getElementById('share-duration').addEventListener('change', function() {
-    if (sharingLocation) {
-        if (shareTimeout) clearTimeout(shareTimeout);
-        const duration = parseInt(this.value, 10);
-        if (duration > 0) {
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
-    }
-});

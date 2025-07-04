@@ -64,10 +64,6 @@ io.on("connection", function(socket){
         io.emit("a-user-disconnected", socket.id);
         console.log("disconnected");
     });
-    socket.on('stop-location', function() {
-        delete userLocations[socket.id];
-        io.emit("a-user-disconnected", socket.id);
-    });
 })
 
 app.get('/', (req, res) => {

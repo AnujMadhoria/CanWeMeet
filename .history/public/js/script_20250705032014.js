@@ -1,6 +1,20 @@
 const socket = io()
 
-
+if(navigator.geolocation){
+    navigator.geolocation.watchPosition((position)=>{
+        const { latitude, longitude }= position.coords;
+        socket.emit("send-location",{ latitude, longitude });
+    },
+    (error)=>{
+        console.error(error)
+    },
+    {
+        enableHighAccuracy:true,
+        timeout:1000,
+        maximumAge:0,
+    }
+  );
+}
 
 const map = L.map("map").setView([0,0],16);
 
@@ -198,27 +212,4 @@ document.getElementById('toggle-location-btn').addEventListener('click', functio
         // Handle timer if set
         const duration = parseInt(document.getElementById('share-duration').value, 10);
         if (duration > 0) {
-           if (shareTimeout) clearTimeout(shareTimeout);
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
-    }
-});
-
-// Duration dropdown logic
-document.getElementById('share-duration').addEventListener('change', function() {
-    if (sharingLocation) {
-        if (shareTimeout) clearTimeout(shareTimeout);
-        const duration = parseInt(this.value, 10);
-        if (duration > 0) {
-            shareTimeout = setTimeout(() => {
-                sharingLocation = false;
-                document.getElementById('toggle-location-btn').textContent = "Start Sharing Location";
-                socket.emit('stop-location');
-            }, duration * 1000);
-        }
-    }
-});
+            if
