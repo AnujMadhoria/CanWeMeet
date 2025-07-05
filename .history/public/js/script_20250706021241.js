@@ -1,55 +1,40 @@
-const socket = io();
+const socket = io()
 
-const map = L.map("map").setView([20, 0], 2);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{}).addTo(map);
+
+const map = L.map("map").setView([0,0],16);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+
+}).addTo(map)
 
 const markers = {};
-let myId = null;
-let myLocation = null;
-let geoWatchId = null;
+let myColor = "black";
 
-socket.on("connect", function() {
-    myId = socket.id;
-    startLocationSharing();
+socket.on("your-color", function(color) {
+    myColor = color;
 });
 
-function startLocationSharing() {
-    if (navigator.geolocation && geoWatchId === null) {
-        geoWatchId = navigator.geolocation.watchPosition(
-            function(position) {
-                myLocation = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                };
-                console.log("Sending location:", myLocation);
-                socket.emit("send-location", myLocation);
-            },
-            function(error) {
-                console.error("Geolocation error:", error);
-            },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-        );
-    }
+function createColoredMarker(lat, lng, color) {
+    return L.circleMarker([lat, lng], {
+        radius: 10,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.8
+    });
 }
 
 socket.on("receive-location", (data) => {
-    console.log("Received location:", data);
-    if (data.id === myId) {
-        myLocation = { latitude: data.latitude, longitude: data.longitude };
-        map.setView([data.latitude, data.longitude], 16);
+    const { id, latitude, longitude, color } = data;
+    if (id === socket.id) {
+        map.setView([latitude, longitude]);
     }
-    if (markers[data.id]) {
-        markers[data.id].setLatLng([data.latitude, data.longitude]);
+    if (markers[id]) {
+        markers[id].setLatLng([latitude, longitude]);
     } else {
-        markers[data.id] = L.circleMarker([data.latitude, data.longitude], {
-            radius: 10,
-            color: data.color || "black",
-            fillColor: data.color || "black",
-            fillOpacity: 0.8
-        }).addTo(map);
+        markers[id] = createColoredMarker(latitude, longitude, color || "black").addTo(map);
     }
-});
+})
 
 socket.on("a-user-disconnected",(id)=>{
     if(markers[id]){
@@ -62,12 +47,7 @@ socket.on("all-locations", function(locations){
     Object.values(locations).forEach(function(data){
         const { id, latitude, longitude, color } = data;
         if (!markers[id]) {
-            markers[id] = L.circleMarker([latitude, longitude], {
-                radius: 10,
-                color: color || "black",
-                fillColor: color || "black",
-                fillOpacity: 0.8
-            }).addTo(map);
+            markers[id] = createColoredMarker(latitude, longitude, color || "black").addTo(map);
         } else {
             markers[id].setLatLng([latitude, longitude]);
         }
@@ -178,16 +158,16 @@ document.getElementById('chat-form').addEventListener('click', function(e){
 });
 
 let sharingLocation = true;
+let geoWatchId = null;
 
 function startLocationSharing() {
     if (navigator.geolocation && geoWatchId === null) {
         geoWatchId = navigator.geolocation.watchPosition(
             function(position) {
-                myLocation = {
+                socket.emit("send-location", {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
-                };
-                socket.emit("send-location", myLocation);
+                });
             },
             function(error) {
                 console.error(error);
@@ -232,6 +212,8 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+let myLocation = null;
+let myId = null;
 let miniChatUsers = [];
 let miniChatOpen = false;
 let miniChatMessages = [];
@@ -247,9 +229,6 @@ function openMiniChat(users) {
     miniChatOpen = true;
     miniChatKey = getMiniChatKey(users);
     miniChatMessages = JSON.parse(localStorage.getItem(miniChatKey) || '[]');
-
-    // Request history from server
-    socket.emit('mini-chat-history', users.map(u => u.id));
 
     let chatDiv = document.getElementById('mini-chat');
     if (!chatDiv) {
@@ -287,7 +266,7 @@ function openMiniChat(users) {
             const msg = document.getElementById('mini-chat-input').value;
             if (msg.trim() !== "") {
                 socket.emit('mini-chat-message', { users: miniChatUsers.map(u => u.id), message: msg });
-                // miniChatMessages.push({ from: 'me', message: msg, color: 'You' });
+                miniChatMessages.push({ from: 'me', message: msg, color: 'You' });
                 saveMiniChatMessages();
                 renderMiniChatMessages();
                 document.getElementById('mini-chat-input').value = '';
@@ -296,7 +275,6 @@ function openMiniChat(users) {
     }
     renderMiniChatMessages();
     document.getElementById('mini-chat-dot').style.display = 'none';
-    showOnlyNearbyMarkers(users);
 }
 
 // Render messages in mini chat
@@ -336,7 +314,6 @@ document.body.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'close-mini-chat') {
         miniChatOpen = false;
         document.getElementById('mini-chat').remove();
-        restoreAllMarkers();
     }
 });
 
@@ -365,50 +342,3 @@ function sendCurrentLocation() {
         });
     }
 }
-
-Object.values(markers).forEach(marker => {
-    if (marker.options.originalColor) {
-        marker.setStyle({ color: marker.options.originalColor, fillColor: marker.options.originalColor });
-    }
-});
-
-let hiddenMarkers = [];
-
-function showOnlyNearbyMarkers(nearbyUsers) {
-    const nearbyIds = nearbyUsers.map(u => u.id);
-    hiddenMarkers = [];
-    Object.entries(markers).forEach(([id, marker]) => {
-        if (!nearbyIds.includes(id)) {
-            map.removeLayer(marker);
-            hiddenMarkers.push(id);
-        }
-    });
-}
-
-function restoreAllMarkers() {
-    hiddenMarkers.forEach(id => {
-        if (markers[id]) {
-            markers[id].addTo(map);
-        }
-    });
-    hiddenMarkers = [];
-}
-
-// When history arrives, merge and render
-socket.on('mini-chat-history', function(history) {
-    // Merge server history with local messages (avoid duplicates)
-    const allMsgs = [...history, ...miniChatMessages];
-    // Remove duplicates (by message text and sender)
-    const uniqueMsgs = [];
-    const seen = new Set();
-    allMsgs.forEach(msg => {
-        const key = msg.from + '|' + msg.message;
-        if (!seen.has(key)) {
-            uniqueMsgs.push(msg);
-            seen.add(key);
-        }
-    });
-    miniChatMessages = uniqueMsgs;
-    saveMiniChatMessages();
-    renderMiniChatMessages();
-});

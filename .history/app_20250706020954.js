@@ -18,7 +18,6 @@ const colors = [
 const userColors = {};
 const userLocations = {};
 const messages = {}; // Store messages by msgId
-const miniChatHistories = {}; // key: groupKey, value: array of messages
 
 function getRandomColor() {
     // Pick a color not in use, or random if all are used
@@ -39,10 +38,6 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-function getMiniChatKey(users) {
-    return users.sort().join('-');
-}
-
 io.on("connection", function(socket){
     // Assign a color to this user
     const color = getRandomColor();
@@ -53,9 +48,9 @@ io.on("connection", function(socket){
     socket.emit("your-color", color);
 
     socket.on("send-location", function(data){
-        userLocations[socket.id] = { id: socket.id, ...data, color: userColors[socket.id] };
-        console.log("Received from client:", data);
-        io.emit("receive-location", { id: socket.id, ...data, color: userColors[socket.id] });
+        userLocations[socket.id] = { id: socket.id, ...data, color };
+        io.emit("receive-location", { id: socket.id, ...data, color });
+        console.log("connected");
     });
 
     socket.on("chat-message", function(data){
@@ -92,18 +87,9 @@ io.on("connection", function(socket){
     });
 
     socket.on('mini-chat-message', function({ users, message }) {
-        const groupKey = getMiniChatKey(users);
-        if (!miniChatHistories[groupKey]) miniChatHistories[groupKey] = [];
-        const msgObj = { from: socket.id, message, color: userColors[socket.id] };
-        miniChatHistories[groupKey].push(msgObj);
         users.forEach(uid => {
-            io.to(uid).emit('mini-chat-message', msgObj);
+            io.to(uid).emit('mini-chat-message', { from: socket.id, message, color: userColors[socket.id] });
         });
-    });
-
-    socket.on('mini-chat-history', function(users) {
-        const groupKey = getMiniChatKey(users);
-        socket.emit('mini-chat-history', miniChatHistories[groupKey] || []);
     });
 
     socket.on("disconnect", function(){

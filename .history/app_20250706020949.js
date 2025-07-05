@@ -18,29 +18,11 @@ const colors = [
 const userColors = {};
 const userLocations = {};
 const messages = {}; // Store messages by msgId
-const miniChatHistories = {}; // key: groupKey, value: array of messages
 
 function getRandomColor() {
     // Pick a color not in use, or random if all are used
     const available = colors.filter(c => !Object.values(userColors).includes(c));
     return available.length > 0 ? available[Math.floor(Math.random() * available.length)] : colors[Math.floor(Math.random() * colors.length)];
-}
-
-function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2-lat1) * Math.PI/180;
-    const dLon = (lon2-lon1) * Math.PI/180;
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2)
-        ;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-}
-
-function getMiniChatKey(users) {
-    return users.sort().join('-');
 }
 
 io.on("connection", function(socket){
@@ -53,9 +35,9 @@ io.on("connection", function(socket){
     socket.emit("your-color", color);
 
     socket.on("send-location", function(data){
-        userLocations[socket.id] = { id: socket.id, ...data, color: userColors[socket.id] };
-        console.log("Received from client:", data);
-        io.emit("receive-location", { id: socket.id, ...data, color: userColors[socket.id] });
+        userLocations[socket.id] = { id: socket.id, ...data, color };
+        io.emit("receive-location", { id: socket.id, ...data, color });
+        console.log("connected");
     });
 
     socket.on("chat-message", function(data){
@@ -74,36 +56,6 @@ io.on("connection", function(socket){
         };
         messages[msgId] = msgObj;
         io.emit("chat-message", msgObj);
-    });
-
-    socket.on('request-nearby-users', function(myLoc) {
-        const users = [];
-        for (const [id, loc] of Object.entries(userLocations)) {
-            if (id !== socket.id) {
-                const dist = getDistance(myLoc.latitude, myLoc.longitude, loc.latitude, loc.longitude);
-                if (dist <= 30) {
-                    users.push({ id, color: userColors[id] });
-                }
-            }
-        }
-        // Also include self for chat
-        users.push({ id: socket.id, color: userColors[socket.id] });
-        socket.emit('nearby-users', users);
-    });
-
-    socket.on('mini-chat-message', function({ users, message }) {
-        const groupKey = getMiniChatKey(users);
-        if (!miniChatHistories[groupKey]) miniChatHistories[groupKey] = [];
-        const msgObj = { from: socket.id, message, color: userColors[socket.id] };
-        miniChatHistories[groupKey].push(msgObj);
-        users.forEach(uid => {
-            io.to(uid).emit('mini-chat-message', msgObj);
-        });
-    });
-
-    socket.on('mini-chat-history', function(users) {
-        const groupKey = getMiniChatKey(users);
-        socket.emit('mini-chat-history', miniChatHistories[groupKey] || []);
     });
 
     socket.on("disconnect", function(){

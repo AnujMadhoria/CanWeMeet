@@ -248,9 +248,6 @@ function openMiniChat(users) {
     miniChatKey = getMiniChatKey(users);
     miniChatMessages = JSON.parse(localStorage.getItem(miniChatKey) || '[]');
 
-    // Request history from server
-    socket.emit('mini-chat-history', users.map(u => u.id));
-
     let chatDiv = document.getElementById('mini-chat');
     if (!chatDiv) {
         chatDiv = document.createElement('div');
@@ -287,7 +284,7 @@ function openMiniChat(users) {
             const msg = document.getElementById('mini-chat-input').value;
             if (msg.trim() !== "") {
                 socket.emit('mini-chat-message', { users: miniChatUsers.map(u => u.id), message: msg });
-                // miniChatMessages.push({ from: 'me', message: msg, color: 'You' });
+                miniChatMessages.push({ from: 'me', message: msg, color: 'You' });
                 saveMiniChatMessages();
                 renderMiniChatMessages();
                 document.getElementById('mini-chat-input').value = '';
@@ -393,22 +390,3 @@ function restoreAllMarkers() {
     });
     hiddenMarkers = [];
 }
-
-// When history arrives, merge and render
-socket.on('mini-chat-history', function(history) {
-    // Merge server history with local messages (avoid duplicates)
-    const allMsgs = [...history, ...miniChatMessages];
-    // Remove duplicates (by message text and sender)
-    const uniqueMsgs = [];
-    const seen = new Set();
-    allMsgs.forEach(msg => {
-        const key = msg.from + '|' + msg.message;
-        if (!seen.has(key)) {
-            uniqueMsgs.push(msg);
-            seen.add(key);
-        }
-    });
-    miniChatMessages = uniqueMsgs;
-    saveMiniChatMessages();
-    renderMiniChatMessages();
-});
