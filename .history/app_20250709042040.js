@@ -133,7 +133,7 @@ server.listen(3000);
 
 const SELF_URL = 'https://canwemeet.onrender.com'; 
 
-cron.schedule('*/10 * * * *', () => {
+cron.schedule('*/10 * * * * *', () => {
     https.get(SELF_URL, (res) => {
         console.log('Self-ping to prevent sleep:', res.statusCode);
     }).on('error', (e) => {

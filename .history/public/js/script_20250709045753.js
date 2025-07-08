@@ -2,7 +2,10 @@ const socket = io();
 
 const map = L.map("map").setView([20, 0], 2);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{}).addTo(map);
+L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg', {
+    minZoom: 1,
+  maxZoom: 16,
+}).addTo(map);
 
 const markers = {};
 let myId = null;

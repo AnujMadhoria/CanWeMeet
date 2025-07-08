@@ -3,7 +3,7 @@ const app = express();
 const http = require('http');
 const path = require('path');
 const cron = require('node-cron');
-const https = require('https'); 
+const https = require('https'); // Use 'http' if your Render URL is not HTTPS
 
 const socketio=require('socket.io')
 

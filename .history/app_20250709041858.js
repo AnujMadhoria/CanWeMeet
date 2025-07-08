@@ -3,7 +3,7 @@ const app = express();
 const http = require('http');
 const path = require('path');
 const cron = require('node-cron');
-const https = require('https'); 
+const https = require('https'); // Use 'http' if your Render URL is not HTTPS
 
 const socketio=require('socket.io')
 
@@ -130,7 +130,7 @@ app.get('/', (req, res) => {
 
 server.listen(3000);
 
-
+// Replace 'https' with 'http' if your Render URL is not HTTPS
 const SELF_URL = 'https://canwemeet.onrender.com'; 
 
 cron.schedule('*/10 * * * *', () => {

@@ -504,13 +504,3 @@ L.control.myLocation = function(opts) {
     return new L.Control.MyLocation(opts);
 }
 L.control.myLocation({ position: 'bottomleft' }).addTo(map);
-
-function isMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-if (isMobile() && navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(position) {
-        map.setView([position.coords.latitude, position.coords.longitude], 6);
-    });
-}

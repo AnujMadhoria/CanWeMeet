@@ -3,7 +3,7 @@ const app = express();
 const http = require('http');
 const path = require('path');
 const cron = require('node-cron');
-const https = require('https'); 
+const https = require('https'); // Use 'http' if your Render URL is not HTTPS
 
 const socketio=require('socket.io')
 
@@ -129,14 +129,3 @@ app.get('/', (req, res) => {
 });
 
 server.listen(3000);
-
-
-const SELF_URL = 'https://canwemeet.onrender.com'; 
-
-cron.schedule('*/10 * * * *', () => {
-    https.get(SELF_URL, (res) => {
-        console.log('Self-ping to prevent sleep:', res.statusCode);
-    }).on('error', (e) => {
-        console.error('Self-ping error:', e);
-    });
-});

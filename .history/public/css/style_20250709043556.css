@@ -5,10 +5,11 @@
 }
 
 html, body {
-    width: 100%;
     height: 100%;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #f4f6fb;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    overflow: hidden;
 }
 
 #main-heading {
@@ -25,24 +26,25 @@ html, body {
 }
 
 #container {
+    height: calc(100vh - 60px); /* Adjust if your heading is a different height */
+    width: 100vw;
     display: flex;
     flex-direction: row;
-    height: calc(100vh - 70px);
-    width: 100vw;
-    gap: 24px;
-    padding: 16px 24px 24px 24px;
+    gap: 0;
+    padding: 0;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 #map {
     flex: 2;
     min-width: 0;
     height: 100%;
-    border-radius: 18px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
-    background: #e9ecef;
-    
+    position: relative;
 }
 
 #chat-area {
@@ -215,47 +217,23 @@ html, body {
 @media (max-width: 900px) {
     #container {
         flex-direction: column;
-        gap: 10px;
-        padding: 8px;
-        height: calc(100vh - 60px);
-    }
-    #toggle-map-btn {
-        display: block;
+        height: calc(100vh - 50px); /* Adjust for your heading */
     }
     #map {
-        height: 40vh;
-        transition: height 0.3s, opacity 0.3s;
-    }
-    #map.map-hidden {
-        height: 0 !important;
-        min-height: 0 !important;
-        opacity: 0;
-        pointer-events: none;
-        margin: 0;
-        padding: 0;
-    }
-    #chat-area {
-        flex: 1 1 auto;
+        height: 100%;
         min-height: 0;
-        padding: 14px 8px 8px 8px;
-        transition: height 0.3s, flex 0.3s;
-        height: 60vh;
-        max-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-    #chat-area.chat-expanded {
-        height: calc(100vh - 60px - 18px); /* 60px heading, 18px gap/padding */
-        flex: 1 1 100%;
-        max-height: 100vh;
-    }
-    #chat-box {
-        max-height: 100%;
-        min-height: 60px;
+        width: 100vw;
     }
 }
 
 @media (max-width: 600px) {
+    #container {
+        height: calc(100vh - 36px); /* Adjust for your heading */
+    }
+    #map {
+        height: 100%;
+        width: 100vw;
+    }
     #main-heading {
         font-size: 1.3rem;
         padding: 12px 0 6px 0;
